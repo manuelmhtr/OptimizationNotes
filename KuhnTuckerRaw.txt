@@ -1,0 +1,67 @@
+KuhnTucker[fx_, vars_, gs_] := (
+   (* Init variables *)
+   rCount = Length[gs];
+   ls = Table[
+     ToExpression[StringJoin["\[Lambda]", ToString[i]]], {i, 
+      rCount}];
+   
+   (* Build Lagrange function *)
+   lagrange = fx;
+   Do[lagrange = lagrange + ls[[i]]* gs[[i]];, {i, rCount}];
+   
+   (* Get partial derivatives *)
+   
+   partials = Table[ D[lagrange, vars[[i]]], {i, Length[vars]}];
+   Print["Partial derivatives:"];
+   Print[partials];
+   Print["\n\n"];
+   
+   (* Heassian *)
+   
+   hessian = MatrixForm[Simplify[D[lagrange, {vars}, {vars}]]];
+   Print["Hessian:"];
+   Print[hessian];
+   Print["\n\n"];
+   
+   (* Build equations system *)
+   
+   buildEquationSystem[system_, index_] := (
+     If[index > Length[gs],
+       Return[system];,
+       (Return[{
+          
+          Flatten[buildEquationSystem[
+            Append[system, gs[[index]] == 0], index + 1]],
+          
+          Flatten[buildEquationSystem[
+            Append[system, ls[[index]] == 0], index + 1]]
+          }])
+       ];
+     );
+   seedPartials = Table[partials[[i]] == 0, {i, Length[partials]}];
+   eqSystems = buildEquationSystem[seedPartials, 1];
+   (* Solve each system equation and make conslusions *)
+   Do[(
+     Print["::> Solving for ecuation system:"];
+     Print[eqSystems[[i]]];
+     solutions = Solve[eqSystems[[i]], Flatten[Append[vars, ls]]];
+     Print[
+      StringJoin["\n", ToString[Length[solutions]], 
+       " solutions found."]];
+     Do[(
+       Print["\n"];
+       Print[solutions[[j]]];
+       result = fx /. solutions[[j]];
+       Print[StringJoin["F = ", ToString[result]]];
+       Do[(
+         Print[
+           StringJoin["G", ToString[k], " = ", 
+            ToString[gs[[k]] /. solutions[[j]]]]];
+         ), {k, Length[gs]}];
+       ), {j, Length[solutions]}];
+     Print["\n\n"];
+     ), {i, Length[eqSystems]}];
+   
+   (* Finish *)
+   Return["Done :)"];
+   );
